@@ -99,10 +99,128 @@ public class Server {
 		
 	
 	}
+	
+	//Shows events in the Console/GUI
+	
 	private void display(String msg) {
 		String time = sdf.format(new Date()) + " " + msg;
-		if(sg == null) {
-			System.
+		if(sg == null) 
+			System.out.println(time);
+		else 
+			sg.appendEvent(time + "\n"); 
+		
+	}
+	
+	//Broadcast a message to all clients
+	
+	private synchronized void broadcast(String msg) {
+		String time = sdf.format(new Date());
+		String messageLf = time + " " + message + "\n";
+		if(sg == null)
+			System.out.println(messageLf);
+		else
+			sg.appendRoom(messageLf);
+		
+		//Loop is in reverse if we need to remove a client (don't really know why but not my code lul)
+		
+		for(int i = al.size(); --i >= 0;) {
+			ClientThread ct = al.get(i);
+			//try to write to client if it fails remove it from the list
+			if(!ct.writeMsg(messageLf)) {
+				al.remove(i);
+				display("Disconnected Client " + ct.username + " removed from list.");
+			}
 		}
 	}
+	
+	synchronized void remove(int id) {
+		//scan the array list until we found the id
+		for(int i = 0; i < al.size(); ++i) {
+			if(ct.id == id) {
+				al.remove(i);
+				return;
+			}
+		}
+	}
+	
+	/*
+	 * To run as a coinsole app just open a console window and:
+	 * > java Server
+	 * > java Server portNumber
+	 * If the port number is not specified 1500 is used
+	 */
+	
+	public static void main(String[] args) {
+		int portNumber = 1500;
+		switch(args.length) {
+		case 1:
+			try {
+				portNumber = Integer.parseInt(args[0]);
+			}
+			catch(Exception e) {
+				System.out.println("Invalid port number.");
+				System.out.println("Usage is: > java Server [portNumber]");
+				return;
+			}
+		case 0:
+			break;
+		default:
+			System.out.print("Usage is: > java Server [portNumber]");
+			return;
+		}
+		Server server = new Server(portNumber);
+		server.start();
+	}
+	
+	class ClientThread extends Thread{
+		
+		//the socket where to listen
+		Socket socket;
+		ObjectInputStream sInput;
+		ObjectOutputStream sOutput;
+		
+		//my unique id
+		int id;
+		//Username of client
+		String username;
+		//Message
+		ChatMessage cm;
+		//the date i connect
+		String date;
+		
+		//Constructor
+		ClientThread(Socket socket){
+			//a unique id
+			id = ++uniqueId;
+			this.socket = socket;
+			
+			//creating both streams
+			System.out.println("Thread trying to create Object Input/Output Streams");
+			
+			try {
+				//create output first
+				sOutput = new ObjectOutputStream(socket.getOutputStream());
+				sInput= new ObjectInputStream(socket.getInputStream());
+				//read username
+				username = (String) sInput.readObject();
+				display(username + " just connected.");
+			}
+			catch (IOException e){
+				System.out.println("Error creating Input/Output Streams: " + e);
+				return;
+			}
+			
+		}
+		
+	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 }
